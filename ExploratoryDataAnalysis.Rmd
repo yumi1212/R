@@ -1,0 +1,219 @@
+---
+title: "Bio Dataset EDA"
+author: "Yu-Wei Hsu"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This project is intended to demonstrate skills to process data, present the data visually, and calculate basic statistics; all with explanatory analysis.\
+Expected learning outcomes:\
+- Calculate counts and probabilities based on categorical data
+- Graph probability distributions
+- Use R to manipulate dataset
+- Interpret data displayed in graphs
+
+### Import Libraries
+```{r}
+library(FSA)
+library(FSAdata)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+```
+
+### Load Data
+```{r}
+setwd("~/Desktop/Github/R")
+bio <- read.csv("inchBio.csv")
+```
+
+### Overview
+```{r}
+headtail(bio,3)
+str(bio)
+summary(bio)
+```
+
+Bio(inchBio.csv) dataset illustrates the total length and weight of various species fishes over 676 records. The following will research on the total length and weight of eight different species.
+
+### EDA
+#### Data manipulating
+```{r}
+# names of species
+distinct(bio,species)
+
+# create table called w with species variables
+w <- table(bio$species)
+#class(w)      # check class
+
+# convert w to data frame
+t <- as.data.frame(w)
+colnames(t)<-c('Species','Freq')
+t
+
+# frequency values from t
+t_freq <- pull(t,Freq)        #t$Freq
+t_freq
+
+# create table named cSpec from bio
+cSpec <- table(bio$species)
+cSpec
+
+# create table cSpecPct with species and percentage
+cSpecPct <- prop.table(cSpec)
+cSpecPct
+
+# convert cSpecPct table to data frame name u
+u <- as.data.frame(cSpecPct)
+
+```
+
+#### Visualization
+```{r}
+# bar plot of cSpec
+barplot(cSpec,main = 'Fish Count',ylab = 'COUNTS',
+        col = 'light green',las=1,cex.names = 0.6)
+
+# bar plot of cSpecPct
+barplot(cSpecPct, ylim = c(0,0.4),main = 'Fish Relative Frequency')
+axis(2,col.axis = 'light blue')
+
+# sort u data frame in descending order
+d <- arrange(u,desc(Freq))
+
+# rename d columns names
+colnames(d)<-c('Species','RelFreq')
+d
+
+# add cumfreq, count and cumcounts
+d$cumfreq = cumsum(d$RelFreq)
+d$counts = sort(t_freq,decreasing = TRUE)
+d$cumcounts = cumsum(d$counts)
+#d <- transform(d,
+#               cumfreq = cumsum(RelFreq),
+#               counts = sort(t_freq,decreasing = TRUE),   #different data frame
+#               cumcounts =cumsum(counts))
+d
+
+```
+
+Let's look at the frequency and numbers of eight species. As we can see, the numbers of species we have in the dataset are in a wide range; only two species fishes over 200 records, Largemouth Bass and Bluegill, and some species have fewer than 20 records. We can slice the dataset into two subsets with a similar amount of data to analyze; one includes the species with **over 200** data and another with the number **range in 30 to 40**(Yellow Perch, Black Crappie, and Iowa Darter).
+
+```{r}
+def_par <- par(no.readonly = T)
+
+# bar plot called pc
+pc <- barplot(na.omit(d$counts), width = 1, space = .15,
+        axes = F, ylim = c(0,3.05*max(d$counts)),
+        main = 'Species Pareto', ylab = 'Cumulative Counts', 
+        names.arg = d$Species, las=2, cex.names = 0.7,)
+
+# add cumulative counts line 
+lines(x = pc,y= d$cumcounts,type = 'b',pch=19,col='cyan4')
+text(x=pc,y=d$cumcounts,labels = d$cumcounts,cex=.7,pos=1)
+
+# grey box
+box(col='grey')
+
+# left axis
+axis(2,at= c(0,d$cumcounts),col='grey62',col.axis = 'grey62',
+     col.ticks = 'grey62',cex=.8,las=1)
+
+# right axis
+label_cumfreq <- paste(c(0,round(d$cumfreq*100,0)),"%",sep='')
+#label_cumfreq
+axis(4,at= c(0,d$cumcounts),label_cumfreq,
+     col='cyan4',col.axis = 'cyan4',las=1,cex=.8)
+
+# display with watermark
+mtext("Hsu",side = 3,line = -1,adj=0,col=rgb(0,0,1,.5),cex=1.3)
+
+par(def_par)
+```
+
+
+```{r}
+# boxplot of weight by species
+# remove missing values in bio
+bio1<-na.omit(bio)
+
+# boxplots of weight and tptal length by Species
+ggplot(bio1,aes(x=species, y=w,color=species))+
+  geom_boxplot(notch = TRUE)+
+  ggtitle("Plot 1: Boxplot of Weight by Species") +
+  ylab("Weight") + xlab("Speices")+
+  theme(axis.text.x = element_text(size=7, angle=60))
+
+ggplot(bio1,aes(x=species, y=tl,color=species))+
+  geom_boxplot()+
+  ggtitle("Plot 2: Boxplot of Total Length by Species") +
+  ylab("Total Length") + xlab("Speices")+
+  theme(axis.text.x = element_text(size=7, angle=60))
+```
+
+There are relative averages between each species as two boxplots shown above. We can not only examine more on the subset mentioned above but also investigate the species with a **similar mean of the total length and weight**: a couple of Balck Crappie and Largemouth Bass, a pair of Bluegill, Pumpkinseed, and Yellow Perch, and another pair of Bluntnose Minnow, Iowa Darter, and Tadpole Madtom.
+
+```{r}
+# pick Largemouth Bass and Bluegill dataset display scatter plot
+LB_B <- c('Largemouth Bass','Bluegill')
+bio2<-(filter(bio1,species %in% LB_B))
+ggplot(bio2,aes(x=tl,y=w,group=species))+
+  geom_point(aes(shape=species,color=species))+
+  ggtitle("Plot 3: Largemouth Bass and Bluegill") +
+  xlab("Total Length") + ylab("Weight")
+```
+
+```{r}
+# pick Yellow Perch, Black Crappie, and Iowa Darter dataset display scatter plot
+YBI <- c('Yellow Perch','Black Crappie','Iowa Darter')
+bio3<-(filter(bio1,species %in% YBI))
+#bio3
+ggplot(bio3,aes(x=tl,y=w,group=species))+
+  geom_point(aes(shape=species,color=species))+
+  ggtitle("Plot 4: Yello Perch, Black Crappie, and Iowa Darter") +
+  xlab("Total Length") + ylab("Weight")
+```
+
+Plot 3 and plot 4 show the datasets that have a similar number of records. We can see that the ranges are quite different for both total length and weight from two datasets. Iowa Darter's length and weight are pretty small compared to Black Crappie and Yellow Perch. We can assume Iowa Darter might be the prey for other species in the same pond based on their body sizes, and of course, we need further investigation.
+
+```{r}
+# select Black Crappie and Largemouth Bass dataset 
+BL <- c('Black Crappie','Largemouth Bass')
+bio4<-(filter(bio1,species %in% BL))
+ggplot(bio4,aes(x=tl,y=w,color=species))+
+  geom_point(aes(shape=species,color=species),alpha=.7)+
+  ggtitle("Plot 5: Black Crappie and Largemouth Bass") +
+  xlab("Total Length") + ylab("Weight")+
+  geom_smooth(method=lm,se=FALSE,fullrange=TRUE)
+
+# select Bluegill, Pumpkinseed, and Yellow Perch dataset
+BPY <- c('Bluegill','Pumpkinseed','Yellow Perch')
+bio5<-(filter(bio1,species %in% BPY))
+ggplot(bio5,aes(x=tl,y=w,color=species))+
+  geom_point(aes(shape=species,color=species),alpha=.7)+
+  ggtitle("Plot 6: Bluegill, Pumpkinseed, and Yellow Perch") +
+  xlab("Total Length") + ylab("Weight")+
+  geom_smooth(method=lm,se=FALSE,fullrange=TRUE)
+
+# select Bluntnose Minnow, Iowa Darter, and Tadpole Madtom dataset
+BIT <- c('Bluntnose Minnow','Iowa Darter','Tadpole Madtom')
+bio6<-(filter(bio1,species %in% BIT))
+ggplot(bio6,aes(x=tl,y=w,color=species))+
+  geom_point(aes(shape=species,color=species),alpha=.7)+
+  ggtitle("Plot 7: Bluntnose Minnow, Iowa Darter, and \nTadpole Madtom") +
+  xlab("Total Length") + ylab("Weight")+
+  geom_smooth(method=lm,se=FALSE,fullrange=TRUE)
+
+```
+
+Plot 5, plot 6, and plot 7 display the datasets that have similar mean between species. We can observe that the regression lines are closed to others, and some lines even look like parallel (plot5 and red-blue lines on plot 6). It should be evident from this observation that there is a connection between the groups with the very close slope of the regression line, probably have the same role in the ecological pyramid.
+
+### Conclusion
+By studying the bio dataset provided, we could analyze that we found similar species among eight species by their weight and total length.\
+- The first couple consists of Black Crappie and Largemouth Bass, which have bigger sizes with a longer length and heavier weight.\
+- The second pair involves Bluegill, Pumpkinseed, and Yellow Perch, which have a medium range of body sizes compared to the first couple.\
+- Finally, we have a group that contains Bluntnose Minnow, Iowa Darter, and Tadpole Madtom, which have smaller sized correlatedly.
