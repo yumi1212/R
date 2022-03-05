@@ -1,0 +1,150 @@
+---
+title: "Plotting Basics"
+author: "Yu-Wei Hsu"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This project demonstrates the skills to process data, present the data visually, and calculate basic; all with explanatory analysis.\
+Expected learning outcomes:\
+- Calculate basic descriptive statistics to describe a set of data\
+- Create various types of graph based on data provided\
+- Use R to visualize data\
+- Explain the significance of calculate statistics and graphs
+
+### Import Libraries
+```{r}
+library(FSA)
+library(FSAdata)
+library(magrittr)
+library(dplyr)
+library(plotrix)
+library(ggplot2)
+library(moments)
+```
+
+### Load Data
+```{r}
+#display BullTroutRML2 dataset which is in FSA library
+BullTroutRML2
+```
+
+#### Overview
+```{r}
+headtail(BullTroutRML2,n=3) #3 records form top and bottom of BullTroutRML2
+str(BullTroutRML2)
+summary(BullTroutRML2)
+```
+
+### EDA
+#### Split Datasets
+```{r}
+#assign new dataset with only Harrison in lake fields
+HL <- filter(BullTroutRML2,lake =="Harrison")
+#assign new dataset with only Osprey in lake fields
+OL <- filter(BullTroutRML2,lake =="Osprey")
+
+#compare datasets            
+summary(HL)
+summary(OL)
+```
+
+- The average and range of both age and fish length records are quite similar, however, the numbers of fish length in Osprey dataset are larger than Harrison dataset.
+
+#### Harrison Lake Visualization
+```{r}
+attach(HL)              #attach HL dataset
+#scatter plot 
+plot(age~fl,xlim=c(0,500),ylim=c(0,15),
+     main = 'Plot 1:Harrison Lake Trout',
+     xlab = 'Fork Length(mm)',ylab = 'Age(yrs)',
+     pch=20)
+#ggplot(HL,aes(x=fl,y=age))+geom_point()+
+#       labs(title='Plot 1: Harrison Lake Trout',
+#       x='Fork Length(mm)',y = 'Age(yrs)' )
+
+```
+```{r}
+#histogram
+hist(age,xlim=c(0,15),ylim=c(0,15),
+     main = 'Plot 2:Harrison Fish Age Distribution',
+     xlab = 'Age(yrs)',ylab = 'Frequency',
+     col = 'cadetblue',col.main = 'cadetblue')
+#ggplot(HL,aes(x=age))+geom_histogram(fill = 'cadetblue')+
+#      labs(title = 'Plot 2:Harrison Fish Age Distribution',
+#           x = 'Age(yrs)',y = 'Frequency')
+
+```
+```{r}
+#showing different colors by era (ggplot2)
+ggplot(HL,aes(x=fl,y=age,color = era))+geom_point()+
+       labs(title='Plot 3: Harrison Density Shaded by Era',
+       x='Fork Length(mm)',y = 'Age(yrs)' )+
+       scale_color_manual(values=c('#006400','#ADFF2F'))
+```
+```{r}
+pchs <- c('+','x')
+cols <- c('red','gray60')
+#scatter plot: change character and shape
+#assgin p as graph name
+p <- ggplot(HL,aes(x=fl,y=age))+
+            geom_point(aes(shape=era,color=era,size=3))+
+            labs(title='Plot 4: Symbol & Color by Era',
+            x='Fork Length(mm)',y = 'Age(yrs)' )+
+            scale_color_manual(values=cols)+
+            scale_shape_manual(values=pchs)+
+            theme(legend.position = 'none')            
+p           #display plot
+#plot(age~fl,xlim=c(0,500),ylim=c(0,15),
+#     main = 'Plot 4: Symbol & Color by Era',
+#     xlab = 'Fork Length(mm)',ylab = 'Age(yrs)',
+#     pch=pchs,col = cols)
+```
+```{r}
+#regression line with plot
+#abline(lm(age~fl),col='blue')
+p<-p+labs(title='Plot 5: Regression Overlay')+
+     scale_shape_manual(values=pchs)+geom_smooth(method=lm,se=FALSE)
+p
+
+#legend with plot
+#legend(x = 'topleft',legend = 'Regression Line')
+p<-p+labs(title='Plot 6: Legend Overlay')+guides(size=FALSE)+
+     theme(legend.position='right',
+           legend.background = element_rect(fill = 'lavender'))
+p
+
+detach(HL)            #datach HL dataset
+```
+
+- The shape of distribution of fish age is skewed right, only few fishes observed are more than 10 years old. (Plot 2)
+- From the scatter plots showed below(Plot 3 & 4), they provide that the fork length has a great relationship with age, Bull Trout with longer length usually is elder. In addition, by different symbols and colors on the plots, they show that there are fewer smaller and younger fishes had been recorded in 1977 than 1997.
+
+#### Compare Two Laske Observations
+```{r}
+#compare Harrison and Osprey observations
+BT2 <- ggplot(BullTroutRML2,aes(x=fl,y=age))+
+       geom_point(aes(shape=lake,color=era))+
+       labs(title='Plot 7: Harrison Lake and Orsprey Lake Trout',
+       x='Fork Length(mm)',y = 'Age(yrs)' )
+BT2
+
+BTL <- ggplot(BullTroutRML2,aes(x=fl,fill=lake,color=lake))+
+       geom_histogram(position='identity',alpha=0.5)+
+       labs(title='Plot 8: Harrison Lake and Orsprey Lake Trout\n Fork Length Distribution')
+       theme(legend.position ='top')
+BTL
+```
+
+- In the plot 7, it shows details by using different symbols and colors. Two symbols spread average and represent two lakes data. However, there are fewer small and young Bull Trouts in 1977 dataset which may influenced by fish harvest activities or ecosystem environment in two time periods. 
+- Besides, there is an outlier in Osprey lake dataset with over 600mm length, it makes the mean of Osprey dataset higher than median. (Plot 8)
+
+
+### Conclusion
+Key Findings:\
+- Average life of Bull Trout is about 6 years old, and few trout can live over 10 years.\
+- Normal length of Bull Trout is around 330mm, but we have a record over 600mm, which is nearly twice than usual.\
+- In 1997, we observer more variety of Bull Trout in Harrison Lake and Osprey Lake, one possible reason could be people stopped overfishing to maintain supply and demand in the future. However, we need more data and further investigate to prove this assumption.
